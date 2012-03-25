@@ -1,9 +1,7 @@
 module MysqlKv
-  def self.set(key, value, opts = {})
+  def self.write(key, value, opts = {})
     expires_at = opts[:expires_at]
-    type = if value.is_a?(NilClass)
-      :nil
-    elsif value.is_a?(FalseClass)
+    type = if value.is_a?(FalseClass)
       :false
     elsif value.is_a?(TrueClass)
       :true
@@ -18,9 +16,9 @@ module MysqlKv
       end
     end
     KeyIndex.transaction do
-      key_index = KeyIndex.find_by_key(key) || KeyIndex.new(:key => key)
+      key_index = KeyIndex::find_by_key(key) || KeyIndex.new(:key => key)
       key_index.type = type
-      if [:nil, :true, :false].include?(type)
+      if [:true, :false].include?(type)
         key_index.key_value_integer.try(:destroy)
         key_index.key_value_string.try(:destroy)
       elsif type == :integer
@@ -45,11 +43,9 @@ module MysqlKv
     end
   end
   
-  def self.get(key)
-    key_index = KeyIndex.find_by_key(key)
+  def self.read(key)
+    key_index = KeyIndex::find_by_key(key)
     if key_index.nil?
-      raise 'Not Found'
-    elsif key_index.type == :nil
       return nil
     elsif key_index.type == :true
       return true
@@ -64,10 +60,29 @@ module MysqlKv
     end
   end
   
+  def self.fetch(key, opts = {})
+    value = MysqlKv::read(key)
+    unless value
+      value = yield if block_given?
+      MysqlKv::write(key, value, opts) if value
+    end
+    return value
+  end
+  
   def self.expire
     # Could do a destroy_all, but would rather destroy in batches. This is friendlier
     # to the database.
-    KeyIndex.find_each(:conditions => ['expires_at <= ?', Time.now], :batch_size => 1024) { |key_index|
+    KeyIndex::find_each(:conditions => ['expires_at <= ?', Time.now], :batch_size => 1024) { |key_index|
+      key_index.destroy
+    }
+  end
+  
+  def self.delete(key)
+    KeyIndex::find_by_key(key).try(:destroy)
+  end
+  
+  def self.delete_starts_with(starts_with)
+    KeyIndex::find_each(:conditions => ['`key` LIKE ?', "#{starts_with}%"], :batch_size => 1024) { |key_index|
       key_index.destroy
     }
   end
