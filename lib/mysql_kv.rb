@@ -4,41 +4,10 @@ module MysqlKv
   def self.write(key, value, opts = {})
     expires_at = opts[:expires_in]
     expires_at = Time.now + expires_at if expires_at
-    type = if value.is_a?(FalseClass)
-      :false
-    elsif value.is_a?(TrueClass)
-      :true
-    elsif value.is_a?(Fixnum) || value.is_a?(Bignum)
-      :integer
-    else
-      value = value.to_s
-      if value.length <= 255
-        :string
-      else
-        :long_string
-      end
-    end
-    KeyIndex.transaction do
-      key_index = KeyIndex::find_by_key(key) || KeyIndex.new(:key => key)
-      key_index.type = type
-      if [:true, :false].include?(type)
-        # Nothing to do
-      elsif type == :integer
-        key_index.key_value_integer ||= KeyValueInteger.new
-        key_index.key_value_integer.value = value
-      elsif type == :string
-        key_index.key_value_string ||= KeyValueString.new
-        key_index.key_value_string.value = value
-      elsif type == :long_string
-        key_index.key_value_long_string ||= KeyValueLongString.new
-        key_index.key_value_long_string.value = value
-      end
-      key_index.expires_at = expires_at
-      key_index.save!
-      key_index.key_value_integer.try(:save!)
-      key_index.key_value_string.try(:save!)
-      key_index.key_value_long_string.try(:save!)
-    end
+    key_index = KeyIndex::find_by_key(key) || KeyIndex.new(:key => key)
+    key_index.value = value
+    key_index.save!
+
     opts[:expires_in] ||= TEMP_CACHE_TIME
     Rails.cache.write(key, value, opts)
   end

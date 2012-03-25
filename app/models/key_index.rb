@@ -51,6 +51,48 @@ class KeyIndex < ActiveRecord::Base
     return ALLOWED_TYPES_INVERT[self.data_type]
   end
   
+  def value=(new_value)
+    new_type = if new_value.is_a?(FalseClass)
+      :false
+    elsif new_value.is_a?(TrueClass)
+      :true
+    elsif new_value.is_a?(Fixnum) || new_value.is_a?(Bignum)
+      :integer
+    else
+      new_value = new_value.to_s
+      if new_value.length <= 255
+        :string
+      else
+        :long_string
+      end
+    end
+    self.type = new_type
+    case new_type
+    when :true:
+      # Nothing to do, value stored in index
+    when :false:
+      # Nothing to do, value stored in index
+    when :integer:
+      if self.key_value_integer.nil?
+        self.key_value_integer ||= KeyValueInteger.new(:value => new_value)
+      else
+        self.key_value_integer.value = new_value
+      end
+    when :string:
+      if self.key_value_string.nil?
+        self.key_value_string ||= KeyValueString.new(:value => new_value)
+      else
+        self.key_value_string.value = new_value
+      end
+    when :long_string:
+      if self.key_value_long_string.nil?
+        self.key_value_long_string ||= KeyValueLongString.new(:value => new_value)
+      else
+        self.key_value_long_string.value = new_value
+      end
+    end
+  end
+  
   def destroy_values_on_type_change
     if data_type_changed?
       case changes['data_type'].first
@@ -67,6 +109,7 @@ class KeyIndex < ActiveRecord::Base
       end
     end
   end
+  private :destroy_values_on_type_change
   
   def remove_from_cache
     Rails.cache.delete(self.key)
