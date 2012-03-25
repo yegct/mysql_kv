@@ -22,21 +22,16 @@ module MysqlKv
       key_index = KeyIndex::find_by_key(key) || KeyIndex.new(:key => key)
       key_index.type = type
       if [:true, :false].include?(type)
-        key_index.key_value_integer.try(:destroy)
-        key_index.key_value_string.try(:destroy)
+        # Nothing to do
       elsif type == :integer
         key_index.key_value_integer ||= KeyValueInteger.new
         key_index.key_value_integer.value = value
-        key_index.key_value_string.try(:destroy)
       elsif type == :string
         key_index.key_value_string ||= KeyValueString.new
         key_index.key_value_string.value = value
-        key_index.key_value_integer.try(:destroy)
       elsif type == :long_string
         key_index.key_value_long_string ||= KeyValueLongString.new
         key_index.key_value_long_string.value = value
-        key_index.key_value_integer.try(:destroy)
-        key_index.key_value_string.try(:destroy)
       end
       key_index.expires_at = expires_at
       key_index.save!

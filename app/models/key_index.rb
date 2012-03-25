@@ -19,6 +19,7 @@ class KeyIndex < ActiveRecord::Base
   validates_length_of :key, :maximum => 255
   
   before_save :set_key_hash
+  after_save :destroy_values_on_type_change
   after_destroy :remove_from_cache
   
   # Prevent changing key once it has been set
@@ -48,6 +49,23 @@ class KeyIndex < ActiveRecord::Base
   
   def type
     return ALLOWED_TYPES_INVERT[self.data_type]
+  end
+  
+  def destroy_values_on_type_change
+    if data_type_changed?
+      case changes['data_type'].first
+      when ALLOWED_TYPES[:false]:
+        # Nothing necessary, value stored in index
+      when ALLOWED_TYPES[:true]:
+        # Nothing necessary, value stored in index
+      when ALLOWED_TYPES[:integer]:
+        key_value_integer.try(:destroy)
+      when ALLOWED_TYPES[:string]:
+        key_value_string.try(:destroy)
+      when ALLOWED_TYPES[:long_string]:
+        key_value_long_string.try(:destroy)
+      end
+    end
   end
   
   def remove_from_cache
