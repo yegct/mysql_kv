@@ -10,11 +10,11 @@ module MysqlKv
     key_index.save!
 
     opts[:expires_in] ||= TEMP_CACHE_TIME
-    Rails.cache.write(key, value, opts)
+    Rails.cache.write(KeyIndex::CACHE_PREFIX + key, value, opts)
   end
   
   def self.read(key)
-    Rails.cache.fetch(key, :expires_in => TEMP_CACHE_TIME) {
+    Rails.cache.fetch(KeyIndex::CACHE_PREFIX + key, :expires_in => TEMP_CACHE_TIME) {
       key_index = KeyIndex::find_by_key(key)
       if key_index.try(:expires_at) && key_index.expires_at < Time.zone.now
         key_index.destroy

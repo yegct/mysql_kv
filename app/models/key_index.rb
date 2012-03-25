@@ -1,4 +1,5 @@
 class KeyIndex < ActiveRecord::Base
+  CACHE_PREFIX='MysqlKv/'
   ALLOWED_TYPES = {
     :false => 1,
     :true => 2,
@@ -127,7 +128,7 @@ class KeyIndex < ActiveRecord::Base
   private :destroy_values_on_type_change
   
   def remove_from_cache
-    Rails.cache.delete(self.key)
+    Rails.cache.delete(KeyIndex::CACHE_PREFIX + self.key)
   end
   private :remove_from_cache
 end
