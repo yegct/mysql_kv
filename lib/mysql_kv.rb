@@ -1,6 +1,9 @@
 module MysqlKv
+  TEMP_CACHE_TIME = 1.day
+  
   def self.write(key, value, opts = {})
-    expires_at = opts[:expires_at] || (Time.now + opts[:expires_in])
+    expires_at = opts[:expires_in]
+    expires_at = Time.now + expires_at if expires_at
     type = if value.is_a?(FalseClass)
       :false
     elsif value.is_a?(TrueClass)
@@ -41,23 +44,27 @@ module MysqlKv
       key_index.key_value_string.try(:save!)
       key_index.key_value_long_string.try(:save!)
     end
+    opts[:expires_in] ||= TEMP_CACHE_TIME
+    Rails.cache.write(key, value, opts)
   end
   
   def self.read(key)
-    key_index = KeyIndex::find_by_key(key)
-    if key_index.nil?
-      return nil
-    elsif key_index.type == :true
-      return true
-    elsif key_index.type == :false
-      return false
-    elsif key_index.type == :integer
-      return key_index.key_value_integer.value
-    elsif key_index.type == :string
-      return key_index.key_value_string.value
-    elsif key_index.type == :long_string
-      return key_index.key_value_long_string.value
-    end
+    Rails.cache.fetch(key, :expires_in => TEMP_CACHE_TIME) {
+      key_index = KeyIndex::find_by_key(key)
+      if key_index.nil?
+        nil
+      elsif key_index.type == :true
+        true
+      elsif key_index.type == :false
+        false
+      elsif key_index.type == :integer
+        key_index.key_value_integer.value
+      elsif key_index.type == :string
+        key_index.key_value_string.value
+      elsif key_index.type == :long_string
+        key_index.key_value_long_string.value
+      end
+    }
   end
   
   def self.fetch(key, opts = {})
@@ -66,7 +73,7 @@ module MysqlKv
       value = yield if block_given?
       MysqlKv::write(key, value, opts) if value
     end
-    return value
+    value
   end
   
   def self.expire

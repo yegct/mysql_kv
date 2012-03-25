@@ -19,6 +19,7 @@ class KeyIndex < ActiveRecord::Base
   validates_length_of :key, :maximum => 255
   
   before_save :set_key_hash
+  after_destroy :remove_from_cache
   
   # Prevent changing key once it has been set
   def key=(new_key)
@@ -48,4 +49,9 @@ class KeyIndex < ActiveRecord::Base
   def type
     return ALLOWED_TYPES_INVERT[self.data_type]
   end
+  
+  def remove_from_cache
+    Rails.cache.delete(self.key)
+  end
+  private :remove_from_cache
 end
