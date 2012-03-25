@@ -22,6 +22,14 @@ class KeyIndex < ActiveRecord::Base
   after_save :destroy_values_on_type_change
   after_destroy :remove_from_cache
   
+  def self.calculate_key_hash(key)
+    Digest::MD5.digest(key)
+  end
+  
+  def self.find_by_key(key)
+    find(:first, :conditions => ['`key_hash` = ? AND `key` = ?', calculate_key_hash(key), key])
+  end
+  
   # Prevent changing key once it has been set
   def key=(new_key)
     raise 'Key already set, cannot change' unless self.key.nil?
@@ -30,14 +38,6 @@ class KeyIndex < ActiveRecord::Base
 
   def set_key_hash
     self.key_hash ||= KeyIndex::calculate_key_hash(self.key)
-  end
-  
-  def self.calculate_key_hash(key)
-    Digest::MD5.digest(key)
-  end
-  
-  def self.find_by_key(key)
-    find(:first, :conditions => ['`key_hash` = ? AND `key` = ?', calculate_key_hash(key), key])
   end
   
   def type=(new_type)
