@@ -1,12 +1,12 @@
-MysqlKv::set('hello', 'world', :type => :string)
+MysqlKv::set('hello', 'world')
 puts MysqlKv::get('hello')
-MysqlKv::set('chris', 123, :type => :integer)
+MysqlKv::set('chris', 123)
 puts MysqlKv::get('chris')
-MysqlKv::set('chris', 456, :type => :integer)
+MysqlKv::set('chris', 456)
 puts MysqlKv::get('chris')
-MysqlKv::set('nil_key', nil, :type => :nil)
+MysqlKv::set('nil_key', nil)
 puts MysqlKv::get('nil_key').inspect
-MysqlKv::set('true_key', true, :type => :true)
+MysqlKv::set('true_key', true)
 puts MysqlKv::get('true_key').inspect
-MysqlKv::set('false_key', nil, :type => :false)
+MysqlKv::set('false_key', false)
 puts MysqlKv::get('false_key').inspect

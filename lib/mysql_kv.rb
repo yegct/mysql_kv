@@ -1,8 +1,22 @@
 module MysqlKv
   def self.set(key, value, opts = {})
     expires_at = opts[:expires_at]
-    type = opts[:type]
-    # Could dynamically determine type here
+    type = if value.is_a?(NilClass)
+      :nil
+    elsif value.is_a?(FalseClass)
+      :false
+    elsif value.is_a?(TrueClass)
+      :true
+    elsif value.is_a?(Fixnum) || value.is_a?(Bignum)
+      :integer
+    else
+      value = value.to_s
+      if value.length <= 255
+        :string
+      else
+        :long_string
+      end
+    end
     KeyIndex.transaction do
       key_index = KeyIndex.find_by_key(key) || KeyIndex.new(:key => key)
       key_index.type = type
@@ -17,11 +31,17 @@ module MysqlKv
         key_index.key_value_string ||= KeyValueString.new
         key_index.key_value_string.value = value
         key_index.key_value_integer.try(:destroy)
+      elsif type == :long_string
+        key_index.key_value_long_string ||= KeyValueLongString.new
+        key_index.key_value_long_string.value = value
+        key_index.key_value_integer.try(:destroy)
+        key_index.key_value_string.try(:destroy)
       end
       key_index.expires_at = expires_at
       key_index.save!
       key_index.key_value_integer.try(:save!)
       key_index.key_value_string.try(:save!)
+      key_index.key_value_long_string.try(:save!)
     end
   end
   
@@ -39,6 +59,8 @@ module MysqlKv
       return key_index.key_value_integer.value
     elsif key_index.type == :string
       return key_index.key_value_string.value
+    elsif key_index.type == :long_string
+      return key_index.key_value_long_string.value
     end
   end
   

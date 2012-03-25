@@ -4,7 +4,8 @@ class KeyIndex < ActiveRecord::Base
     :false => 1,
     :true => 2,
     :integer => 3,
-    :string => 4
+    :string => 4,
+    :long_string => 5
   }
   ALLOWED_TYPES_INVERT = ALLOWED_TYPES.invert
   
