@@ -1,6 +1,5 @@
 class KeyIndex < ActiveRecord::Base
   ALLOWED_TYPES = {
-    :nil => 0,
     :false => 1,
     :true => 2,
     :integer => 3,
