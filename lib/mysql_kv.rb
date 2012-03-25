@@ -14,20 +14,7 @@ module MysqlKv
   
   def self.read(key)
     Rails.cache.fetch(key, :expires_in => TEMP_CACHE_TIME) {
-      key_index = KeyIndex::find_by_key(key)
-      if key_index.nil?
-        nil
-      elsif key_index.type == :true
-        true
-      elsif key_index.type == :false
-        false
-      elsif key_index.type == :integer
-        key_index.key_value_integer.value
-      elsif key_index.type == :string
-        key_index.key_value_string.value
-      elsif key_index.type == :long_string
-        key_index.key_value_long_string.value
-      end
+      KeyIndex::find_by_key(key).try(:value)
     }
   end
   

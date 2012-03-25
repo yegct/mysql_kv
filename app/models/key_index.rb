@@ -93,6 +93,21 @@ class KeyIndex < ActiveRecord::Base
     end
   end
   
+  def value
+    case data_type
+    when ALLOWED_TYPES[:false]:
+      false
+    when ALLOWED_TYPES[:true]:
+      true
+    when ALLOWED_TYPES[:integer]:
+      self.key_value_integer.try(:value)
+    when ALLOWED_TYPES[:string]:
+      self.key_value_string.try(:value)
+    when ALLOWED_TYPES[:long_string]:
+      self.key_value_long_string.try(:value)
+    end
+  end
+  
   def destroy_values_on_type_change
     if data_type_changed?
       case changes['data_type'].first
