@@ -1,6 +1,6 @@
 module MysqlKv
   def self.write(key, value, opts = {})
-    expires_at = opts[:expires_at]
+    expires_at = opts[:expires_at] || (Time.now + opts[:expires_in])
     type = if value.is_a?(FalseClass)
       :false
     elsif value.is_a?(TrueClass)
