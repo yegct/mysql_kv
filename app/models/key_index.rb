@@ -28,7 +28,12 @@ class KeyIndex < ActiveRecord::Base
   end
   
   def self.find_by_key(key)
-    find(:first, :conditions => ['`key_hash` = ? AND `key` = ?', calculate_key_hash(key), key])
+    retval = find(:first, :conditions => ['`key_hash` = ? AND `key` = ?', calculate_key_hash(key), key])
+    if retval.try(:expires_at) && retval.expires_at < Time.zone.now
+      retval.destroy
+      retval = nil
+    end
+    retval
   end
   
   # Prevent changing key once it has been set

@@ -16,10 +16,6 @@ module MysqlKv
   def self.read(key)
     Rails.cache.fetch(KeyIndex::CACHE_PREFIX + key, :expires_in => TEMP_CACHE_TIME) {
       key_index = KeyIndex::find_by_key(key)
-      if key_index.try(:expires_at) && key_index.expires_at < Time.zone.now
-        key_index.destroy
-        key_index = nil
-      end
       key_index.try(:value)
     }
   end
@@ -49,5 +45,27 @@ module MysqlKv
     KeyIndex::find_each(:conditions => ['`key` LIKE ?', "#{starts_with}%"], :batch_size => 1024) { |key_index|
       key_index.destroy
     }
+  end
+  
+  # Increment a value by the specified amount. If the key does not
+  # already exist, or if the key is not an integer, it will be set
+  # to value.
+  # For example:
+  # MysqlKv::incr('my_incr', 1) # => 1
+  # MysqlKv::incr('my_incr', 1) # => 2
+  # MysqlKv::write('my_incr', 'string') # => string
+  # MysqlKv::incr('my_incr', 1) # => 1
+  # Note that by necessity, we skip the Rails cache.
+  def self.incr(key, increment, opts = {})
+    key_index = KeyIndex::find_by_key(key)
+    if key_index.nil? || key_index.type != :integer
+      value = MysqlKv::write(key, increment, opts)
+    else
+      KeyValueInteger::update_counters(key_index.id, :value => increment)
+      Rails.cache.delete(KeyIndex::CACHE_PREFIX + key)
+    end
+    # Have to do this as a separate step because Rails doesn't provide a
+    # way to do an update-and-read-updated-value in a single step.
+    MysqlKv::read(key)
   end
 end
