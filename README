@@ -1,12 +1,41 @@
-MysqlKv::set('hello', 'world')
-puts MysqlKv::get('hello')
-MysqlKv::set('chris', 123)
-puts MysqlKv::get('chris')
-MysqlKv::set('chris', 456)
-puts MysqlKv::get('chris')
-MysqlKv::set('nil_key', nil)
-puts MysqlKv::get('nil_key').inspect
-MysqlKv::set('true_key', true)
-puts MysqlKv::get('true_key').inspect
-MysqlKv::set('false_key', false)
-puts MysqlKv::get('false_key').inspect
+# Example usage
+
+Set a string value:
+  MysqlKv::write('hello', 'world')
+  MysqlKv::read('hello')
+
+Set an integer:
+  MysqlKv::write('int', 123)
+  MysqlKv::read('int')
+
+Set a boolean:
+  MysqlKv::write('bool', true)
+  MysqlKv::read('bool')
+
+Fetch a value, and set it if not already set:
+  MysqlKv::fetch('fetchable') {
+    'value'
+  }
+
+Set an expiring value:
+  MysqlKv::write('expiring', 123, :expires_in => 1.second)
+
+Old keys will automatically be expired when retrieved from the database.
+If you would like to expire them without retrieving them, try:
+  MysqlKv::expire
+
+Increment a key:
+  MysqlKv::incr('my_incr', 2) # => 2
+  MysqlKv::incr('my_incr', 1) # => 3
+Note that if the value is not currently an integer, it will be destroyed
+and then created as an int.
+  MysqlKv::write('my_incr', 'string') # => string
+  MysqlKv::incr('my_incr', 1) # => 1
+
+Delete a key:
+  MysqlKv::write('deleteable', 'value')
+  MysqlKv::delete('deleteable')
+
+Delete keys by prefix:
+  [*1..9].each { |prefix| MysqlKv::write("prefix_#{prefix}", true) }
+  MysqlKv::delete_starts_with('prefix_')
